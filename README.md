@@ -1,4 +1,4 @@
-# AGENTS.md
+# Gosuda Template for Go
 
 Official AI agent coding guidelines and tooling templates for Go projects under [github.com/gosuda](https://github.com/gosuda).
 
