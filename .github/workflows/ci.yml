@@ -6,9 +6,6 @@ on:
   push:
     branches: ["*"]
 
-env:
-  CGO_ENABLED: "0"
-
 jobs:
   check-go:
     name: Check Go Project
