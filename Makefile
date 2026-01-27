@@ -1,6 +1,3 @@
-CGO_ENABLED := 0
-export CGO_ENABLED
-
 .PHONY: fmt vet lint test vuln tidy build all
 
 fmt:
