@@ -145,9 +145,9 @@ go test -v -race -coverprofile=coverage.out ./...
 
 ---
 
-## Verbalized Sampling (AI Agents)
+## Verbalized Sampling
 
-Before non-trivial changes, AI agents **must**:
+Before trival or non-trivial changes, AI agents **must**:
 
 1. **Sample 3–5 intent hypotheses** — rank by likelihood, note one weakness each
 2. **Explore edge cases** — up to 3 standard, 5 for architectural changes
