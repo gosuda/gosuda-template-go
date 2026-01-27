@@ -1,4 +1,4 @@
-.PHONY: fmt vet lint test build all
+.PHONY: fmt vet lint test vuln tidy build all
 
 fmt:
 	gofmt -w .
@@ -13,7 +13,14 @@ lint:
 test:
 	go test -v -race -coverprofile=coverage.out ./...
 
+vuln:
+	govulncheck ./...
+
+tidy:
+	go mod tidy
+	go mod verify
+
 build:
 	go build ./...
 
-all: fmt vet lint test build
+all: fmt vet lint test vuln build

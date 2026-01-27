@@ -58,6 +58,12 @@ linters:
     - prealloc
     - intrange
     - modernize
+    - fatcontext
+    - perfsprint
+    - reassign
+    - spancheck
+    - mirror
+    - recvcheck
 
   exclusions:
     rules:
@@ -74,6 +80,7 @@ linters:
           - goconst
           - funlen
           - dupl
+          - gochecknoglobals
       - text: "should have a package comment"
         linters: [revive]
       - text: "exported \\S+ \\S+ should have comment"
@@ -168,6 +175,18 @@ linters:
       excludes:
         - G104
         - G304
+
+    perfsprint:
+      strconcat: true
+
+    fatcontext:
+      check-struct-pointers: true
+
+    spancheck:
+      checks:
+        - end
+        - record-error
+        - set-status
 
 issues:
   max-issues-per-linter: 0
