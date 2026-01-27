@@ -100,6 +100,9 @@ go test -v -race -coverprofile=coverage.out ./...
 - **Fuzz testing:** `go test -fuzz=. -fuzztime=30s` — fast, deterministic targets
 - **testify** for assertions when stdlib `testing` is verbose
 
+* **PGO:** production CPU profile → `default.pgo` in main package → rebuild (2–14% gain)
+* **GOGC:** default 100; high-throughput `200-400`; memory-constrained `GOMEMLIMIT` + `GOGC=off`
+
 ---
 
 ## Security
@@ -114,12 +117,11 @@ go test -v -race -coverprofile=coverage.out ./...
 
 ## Performance
 
-- **PGO:** production CPU profile → `default.pgo` in main package → rebuild (2–14% gain)
-- **GOGC:** default 100; high-throughput `200-400`; memory-constrained `GOMEMLIMIT` + `GOGC=off`
 - **Object reuse:** `sync.Pool` hot paths · `weak.Make` for cache-friendly patterns
 - **Benchmarking:** `go test -bench=. -benchmem` · `-cpuprofile`/`-memprofile`
 - **Avoid `reflect`:** ~30x slower than static code, defeats compile-time checks and linters · prefer generics (4–18x faster), type switches, interfaces, or `go generate` codegen for hot paths
 - **Escape analysis:** `go build -gcflags='-m'` to verify heap allocations
+
 
 ---
 
