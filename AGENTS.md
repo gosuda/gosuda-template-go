@@ -12,6 +12,8 @@ Import ordering: **stdlib → external → internal** (blank-line separated). Lo
 
 **Naming:** packages lowercase single-word (`httpwrap`) · interfaces as behavior verbs (`Reader`, `Handler`) · errors `Err` prefix sentinels (`ErrNotFound`), `Error` suffix types · context always first param `func Do(ctx context.Context, ...)`
 
+**CGo:** always disabled — `CGO_ENABLED=0`. Pure Go only. No C dependencies.
+
 ---
 
 ## Static Analysis & Linters
@@ -38,27 +40,16 @@ Full configuration: **[`.golangci.yml`](.golangci.yml)**. Linter tiers:
 2. **Sentinel errors** per package: `var ErrNotFound = errors.New("user: not found")`
 3. **Multi-error** — use `errors.Join(err1, err2)` or `fmt.Errorf("op: %w and %w", e1, e2)`
 4. **Never ignore errors** — `_ = fn()` only for `errcheck.exclude-functions`
-5. **Fail fast** — return immediately on error; no state accumulation after failure
-6. **Check with `errors.Is` / `errors.As`** — never string-match `err.Error()`
-
-```go
-// BAD: result, _ := doSomething()  |  return err  |  err.Error() == "x"
-// GOOD:
-return fmt.Errorf("processOrder: %w", err)
-if errors.Is(err, ErrNotFound) {}
-```
+5. **Fail fast** — return immediately; no state accumulation after failure
+6. **Check with `errors.Is`/`errors.As`** — never string-match `err.Error()`
 
 ---
 
 ## Iterators (Go 1.23+)
 
-Standard iterator signatures: `func(yield func() bool)` · `func(yield func(V) bool)` · `func(yield func(K, V) bool)`
+Signatures: `func(yield func() bool)` · `func(yield func(V) bool)` · `func(yield func(K, V) bool)`
 
-**Rules:**
-- **Always check yield return** — program panics if ignored on break
-- **Avoid defer/recover** inside iterator bodies
-- **Use stdlib**: `slices.All`, `slices.Backward`, `slices.Collect`, `maps.Keys`, `maps.Values`
-- Range over integers: `for i := range n {}`
+**Rules:** always check yield return (panics on break if ignored) · avoid defer/recover in iterator bodies · use stdlib (`slices.All`, `slices.Backward`, `slices.Collect`, `maps.Keys`, `maps.Values`) · range over integers: `for i := range n {}`
 
 ---
 
@@ -68,22 +59,32 @@ Every public I/O function **must** take `context.Context` first.
 
 | Pattern | Primitive |
 |---------|-----------|
-| Parallel work | `errgroup.Group` |
-| Bounded concurrency | Buffered channel + goroutines |
-| Wait for N goroutines | `sync.WaitGroup` |
-| Concurrent read/write | `sync.RWMutex` |
+| Parallel work with errors | `errgroup.Group` (preferred over `WaitGroup`) |
+| Bounded concurrency | `errgroup.SetLimit` or buffered channel semaphore |
+| Fan-out/fan-in | Unbuffered chan + N producers + 1 consumer; `select` to merge |
+| Pipeline stages | `chan T` between stages, sender closes to signal done |
+| Cancellation/timeout | `context.WithCancel` / `context.WithTimeout` |
+| Concurrent read/write | `sync.RWMutex` (encapsulate behind methods) |
 | Lock-free counters | `atomic.Int64` / `atomic.Uint64` |
-| One-time init | `sync.Once` |
+| One-time init | `sync.Once` / `sync.OnceValue` / `sync.OnceFunc` |
+| Object reuse | `sync.Pool` (hot paths only, no lifetime guarantees) |
 
-**Rules:** goroutine creator owns lifecycle · worker pools use buffered channels for backpressure · no bare `go func()` — handle errors and panics · no `sync.Mutex` in public APIs · prefer `errgroup` over `WaitGroup` when goroutines return errors
+**Goroutine rules:** creator owns lifecycle (start, stop, errors, panic recovery) · no bare `go func()` · every goroutine needs a clear exit (context, done channel, bounded work) · leaks are bugs — verify with `goleak` or `runtime.NumGoroutine()`
+
+**Channel rules:** use directional types (`chan<-`/`<-chan`) in signatures · only sender closes · nil channel blocks forever (use to disable `select` cases) · unbuffered = synchronization, buffered = decoupling/backpressure · `for v := range ch` until closed · `select` with `default` only for non-blocking try-send/try-receive
+
+**Select patterns:** timeout via `context.WithTimeout` (not `time.After` in loops — leaks timers) · always check `ctx.Done()` · fan-in merges with multi-case `select` · rate-limit with `time.Ticker` not `time.Sleep`
 
 ```go
 g, ctx := errgroup.WithContext(ctx)
+g.SetLimit(maxWorkers)
 for _, item := range items {
     g.Go(func() error { return process(ctx, item) })
 }
 if err := g.Wait(); err != nil { return fmt.Errorf("processAll: %w", err) }
 ```
+
+**Anti-patterns:** ❌ shared memory without sync · ❌ `sync.Mutex` in public APIs · ❌ goroutine without context · ❌ closing channel from receiver · ❌ sending on closed channel · ❌ `time.Sleep` for synchronization · ❌ unbounded goroutine spawn
 
 ---
 
@@ -93,42 +94,41 @@ if err := g.Wait(); err != nil { return fmt.Errorf("processAll: %w", err) }
 go test -v -race -coverprofile=coverage.out ./...
 ```
 
-- **Benchmarks (Go 1.24+):** use `for b.Loop() {}` — prevents compiler optimizations, excludes setup from timing
-- **Test contexts (Go 1.24+):** use `ctx := t.Context()` — auto-canceled when test ends
-- **Table-driven tests** as default pattern · **race detection** (`-race`) mandatory in CI
-- **Fuzz testing:** `go test -fuzz=. -fuzztime=30s` — targets must be fast and deterministic
+- **Benchmarks (Go 1.24+):** `for b.Loop() {}` — prevents compiler opts, excludes setup from timing
+- **Test contexts (Go 1.24+):** `ctx := t.Context()` — auto-canceled when test ends
+- **Table-driven tests** as default · **race detection** (`-race`) mandatory in CI
+- **Fuzz testing:** `go test -fuzz=. -fuzztime=30s` — fast, deterministic targets
 - **testify** for assertions when stdlib `testing` is verbose
 
 ---
 
 ## Security
 
-- **Vulnerability scanning:** `govulncheck ./...` — run in CI and before releases
+- **Vulnerability scanning:** `govulncheck ./...` — CI and pre-release
 - **Module integrity:** `go mod verify` — validates checksums against go.sum
-- **Supply chain:** always commit `go.sum` · audit deps with `go mod graph` · pin toolchain in go.mod
-- **SBOM:** generate on release with `syft packages . -o cyclonedx-json > sbom.json`
-- **Crypto:** Go 1.24+ includes FIPS 140-3, post-quantum X25519MLKEM768, `crypto/rand.Text()` for secure tokens
+- **Supply chain:** always commit `go.sum` · audit with `go mod graph` · pin toolchain
+- **SBOM:** `syft packages . -o cyclonedx-json > sbom.json` on release
+- **Crypto:** FIPS 140-3, post-quantum X25519MLKEM768, `crypto/rand.Text()` for secure tokens
 
 ---
 
 ## Performance
 
-- **PGO:** collect production CPU profile → place as `default.pgo` in main package → rebuild (2–14% improvement)
-- **GOGC:** default 100; high-throughput `200-400`; memory-constrained use `GOMEMLIMIT` with `GOGC=off`
-- **Object reuse:** `sync.Pool` for hot-path allocations · weak pointers (`weak.Make`) for cache-friendly patterns
-- **Benchmarking:** `go test -bench=. -benchmem` · profile with `-cpuprofile`/`-memprofile`
-- **Escape analysis:** `go build -gcflags='-m'` to verify heap allocations on hot paths
+- **PGO:** production CPU profile → `default.pgo` in main package → rebuild (2–14% gain)
+- **GOGC:** default 100; high-throughput `200-400`; memory-constrained `GOMEMLIMIT` + `GOGC=off`
+- **Object reuse:** `sync.Pool` hot paths · `weak.Make` for cache-friendly patterns
+- **Benchmarking:** `go test -bench=. -benchmem` · `-cpuprofile`/`-memprofile`
+- **Escape analysis:** `go build -gcflags='-m'` to verify heap allocations
 
 ---
 
 ## Module Hygiene
 
-- **Always commit** `go.mod` and `go.sum` — reproducibility and integrity
-- **Never commit** `go.work` — local development only
+- **Always commit** `go.mod` and `go.sum` · **never commit** `go.work`
 - **Pin toolchain:** `toolchain go1.25.0` in go.mod
 - **Tool directive (Go 1.24+):** `tool golang.org/x/tools/cmd/stringer` in go.mod
 - **Pre-release:** `go mod tidy && go mod verify && govulncheck ./...`
-- **Sandboxed I/O (Go 1.24+):** use `os.Root` for directory-scoped file operations
+- **Sandboxed I/O (Go 1.24+):** `os.Root` for directory-scoped file operations
 
 ---
 
