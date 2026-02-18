@@ -151,7 +151,7 @@ go test -v -race -coverprofile=coverage.out ./...
 Before trival or non-trivial changes, AI agents **must**:
 
 1. **Sample 3–5 intent hypotheses** — rank by likelihood, note one weakness each
-2. **Explore edge cases** — up to 3 standard, 5 for architectural changes
+2. **Explore edge cases** — at least 3 standard, 5 for architectural changes
 3. **Assess coupling** — structural (imports), temporal (co-changing files), semantic (shared concepts)
 4. **Tidy first** — high coupling → extract/split/rename before changing; low → change directly
 5. **Surface decisions** — ask the human when trade-offs exist; do exactly what is asked, no more
