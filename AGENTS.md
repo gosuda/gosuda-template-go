@@ -142,7 +142,7 @@ go test -v -race -coverprofile=coverage.out ./...
 | [`Makefile`](Makefile) | Build/lint/test/vuln targets |
 | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions: test → lint → security → build |
 
-**Pre-commit:** `make all` or `gofmt -w . && goimports -w . && go vet ./... && golangci-lint run && go test -race ./... && govulncheck ./...`
+**Pre-commit:** `make all` or `gofmt -w . && goimports -w . && go vet ./... && golangci-lint run --fix && go test -race ./... && govulncheck ./...`
 
 ---
 
