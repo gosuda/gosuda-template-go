@@ -1,6 +1,6 @@
 # AGENTS.md — gosuda Organization
 
-Official AI agent coding guidelines for Go 1.25+ projects under [github.com/gosuda](https://github.com/gosuda).
+Official AI agent coding guidelines for Go 1.26+ projects under [github.com/gosuda](https://github.com/gosuda).
 
 ---
 
@@ -13,24 +13,6 @@ Import ordering: **stdlib → external → internal** (blank-line separated). Lo
 **Naming:** packages lowercase single-word (`httpwrap`) · interfaces as behavior verbs (`Reader`, `Handler`) · errors `Err` prefix sentinels (`ErrNotFound`), `Error` suffix types · context always first param `func Do(ctx context.Context, ...)`
 
 **CGo:** always disabled — `CGO_ENABLED=0`. Pure Go only. No C dependencies.
-
----
-
-## Static Analysis & Linters
-
-| Tool | Command |
-|------|---------|
-| Built-in vet | `go vet ./...` |
-| golangci-lint v2 | `golangci-lint run` |
-| Race detector | `go test -race ./...` |
-| Vulnerability scan | `govulncheck ./...` |
-
-Full configuration: **[`.golangci.yml`](.golangci.yml)**. Linter tiers:
-
-- **Correctness** — `govet`, `errcheck`, `staticcheck`, `unused`, `gosec`, `errorlint`, `nilerr`, `copyloopvar`, `bodyclose`, `sqlclosecheck`, `rowserrcheck`, `durationcheck`, `makezero`, `noctx`
-- **Quality** — `gocritic` (all tags), `revive`, `unconvert`, `unparam`, `wastedassign`, `misspell`, `whitespace`, `godot`, `goconst`, `dupword`, `usestdlibvars`, `testifylint`, `testableexamples`, `tparallel`, `usetesting`
-- **Concurrency safety** — `gochecknoglobals`, `gochecknoinits`, `containedctx`
-- **Performance & modernization** — `prealloc`, `intrange`, `modernize`, `fatcontext`, `perfsprint`, `reassign`, `spancheck`, `mirror`, `recvcheck`
 
 ---
 
@@ -119,9 +101,6 @@ go test -v -race -coverprofile=coverage.out ./...
 - **Avoid `reflect`:** ~30x slower than static code, defeats compile-time checks and linters · prefer generics (4–18x faster), type switches, interfaces, or `go generate` codegen for hot paths
 - **Escape analysis:** `go build -gcflags='-m'` to verify heap allocations
 
-* **PGO:** production CPU profile → `default.pgo` in main package → rebuild (2–14% gain)
-* **GOGC:** default 100; high-throughput `200-400`; memory-constrained `GOMEMLIMIT` + `GOGC=off`
-
 ---
 
 ## Module Hygiene
@@ -133,14 +112,6 @@ go test -v -race -coverprofile=coverage.out ./...
 - **Sandboxed I/O (Go 1.24+):** `os.Root` for directory-scoped file operations
 
 ---
-
-## CI/CD & Tooling
-
-| File | Purpose |
-|------|---------|
-| [`.golangci.yml`](.golangci.yml) | golangci-lint v2 configuration |
-| [`Makefile`](Makefile) | Build/lint/test/vuln targets |
-| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | GitHub Actions: test → lint → security → build |
 
 **Pre-commit:** `make all` or `gofmt -w . && goimports -w . && go vet ./... && golangci-lint run --fix && go test -race ./... && govulncheck ./...`
 
