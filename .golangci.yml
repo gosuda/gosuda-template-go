@@ -5,18 +5,24 @@ run:
   go: "1.26"
 
 formatters:
-  enable: [goimports]
+  enable:
+    - goimports
   settings:
     goimports:
-      local-prefixes: [github.com/gosuda, gosuda.org]
+      local-prefixes:
+        - github.com/gosuda
+        - gosuda.org
 
 linters:
   default: standard
+
   enable:
+    # --- Tier 1: Bugs & Correctness ---
     - govet
     - errcheck
     - staticcheck
     - unused
+    - gosec
     - errorlint
     - copyloopvar
     - nilerr
@@ -26,67 +32,111 @@ linters:
     - durationcheck
     - makezero
     - noctx
-    - revive
+
+    # --- Tier 2: Code Quality & Style ---
+    - gocritic
+    - unconvert
+    - unparam
     - wastedassign
     - misspell
     - whitespace
     - godot
+    - goconst
+    - dupword
     - usestdlibvars
     - testifylint
+    - testableexamples
+    - tparallel
     - usetesting
+
+    # --- Tier 3: Concurrency & Safety ---
+    - gochecknoglobals
+    - gochecknoinits
     - containedctx
+
+    # --- Tier 4: Performance & Modernization ---
     - prealloc
     - intrange
+    - modernize
     - fatcontext
     - perfsprint
     - reassign
+    - spancheck
     - mirror
+    - recvcheck
 
   exclusions:
     rules:
-      - linters: [errcheck]
+      - linters:
+          - errcheck
         source: "^\\s*defer\\s+"
       - path: "_test\\.go"
-        linters: [bodyclose, errcheck, noctx, wrapcheck, funlen, dupl]
-      - text: "should have a package comment"
-        linters: [revive]
-      - text: "exported \\S+ \\S+ should have comment"
-        linters: [revive]
+        linters:
+          - bodyclose
+          - errcheck
+          - gosec
+          - noctx
+          - wrapcheck
+          - goconst
+          - funlen
+          - dupl
+          - gochecknoglobals
 
   settings:
-    errcheck:
-      check-blank: false
-      check-type-assertions: false
-      exclude-functions:
-        - fmt.Printf
-        - fmt.Println
-        - fmt.Print
-        - fmt.Fprintf
-        - fmt.Fprint
-        - fmt.Fprintln
-        - fmt.Sprintf
-        - os.Unsetenv
-        - encoding/json.Marshal
-        - encoding/json.Unmarshal
-        - io.Copy
-        - log.Printf
-        - log.Println
-        - log.Print
-        - time.Now
-        - time.Sleep
-        - sync.Mutex.Lock
-        - sync.Mutex.Unlock
-        - sync.RWMutex.RLock
-        - sync.RWMutex.RUnlock
+    # errcheck:
+    #   check-blank: false
+    #   check-type-assertions: false
+    #   exclude-functions:
+    #     - fmt.Printf
+    #     - fmt.Println
+    #     - fmt.Print
+    #     - fmt.Fprintf
+    #     - fmt.Fprint
+    #     - fmt.Fprintln
+    #     - fmt.Sprintf
+    #     - os.Unsetenv
+    #     - encoding/json.Marshal
+    #     - encoding/json.Unmarshal
+    #     - encoding/json.NewEncoder
+    #     - encoding/json.NewDecoder
+    #     - strings.Builder.WriteString
+    #     - strings.Builder.Write
+    #     - bytes.Buffer.Write
+    #     - bytes.Buffer.WriteString
+    #     - io.Copy
+    #     - log.Printf
+    #     - log.Println
+    #     - log.Print
+    #     - time.Now
+    #     - time.Sleep
+
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+        - opinionated
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
 
     govet:
       enable-all: true
+      settings:
+        shadow:
+          strict: true
 
     perfsprint:
       strconcat: true
 
     fatcontext:
       check-struct-pointers: true
+
+    spancheck:
+      checks:
+        - end
+        - record-error
+        - set-status
 
 issues:
   max-issues-per-linter: 0
