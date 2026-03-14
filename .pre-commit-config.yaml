@@ -20,6 +20,27 @@ repos:
 
   - repo: local
     hooks:
+      - id: go-get-update
+        name: go-get-update
+        description: Runs go get -u to update dependencies
+        entry: go get -u ./...
+        language: golang
+        pass_filenames: false
+
+      - id: go-mod-tidy
+        name: go-mod-tidy
+        description: Runs go mod tidy to update go.mod and go.sum
+        entry: go mod tidy
+        language: golang
+        pass_filenames: false
+
+      - id: go-fix
+        name: go-fix
+        description: Runs go fix to update Go code to the latest version
+        entry: go fix ./...
+        language: golang
+        types: [go]
+
       - id: golangci-lint-config-verify
         name: golangci-lint-config-verify
         description: Verifies the golangci-lint configuration file
@@ -40,6 +61,14 @@ repos:
         name: golangci-lint-fmt
         description: Formats Go source code using golangci-lint
         entry: golangci-lint fmt
+        types: [go]
+        language: golang
+        pass_filenames: false
+
+      - id: go-vet
+        name: go-vet
+        description: Runs go vet to check for errors
+        entry: go vet ./...
         types: [go]
         language: golang
         pass_filenames: false
