@@ -13,7 +13,7 @@ jobs:
     outputs:
       is-go-project: ${{ steps.check.outputs.exists }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: check
         run: |
           if [ -f "go.mod" ]; then
@@ -30,7 +30,7 @@ jobs:
     needs: check-go
     if: needs.check-go.outputs.is-go-project == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: "stable"
@@ -45,7 +45,7 @@ jobs:
     needs: check-go
     if: needs.check-go.outputs.is-go-project == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: "stable"
@@ -59,7 +59,7 @@ jobs:
     needs: check-go
     if: needs.check-go.outputs.is-go-project == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: "stable"
@@ -73,7 +73,7 @@ jobs:
     needs: check-go
     if: needs.check-go.outputs.is-go-project == 'true'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: "stable"
